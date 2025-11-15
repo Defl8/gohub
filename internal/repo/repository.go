@@ -14,10 +14,6 @@ const (
 	Python GitignoreLang = "Python"
 )
 
-func (gl GitignoreLang) Value() string {
-	return string(gl)
-}
-
 type License string
 
 const (
@@ -29,10 +25,6 @@ const (
 	ApacheV2  License = "apache-2.0"
 	GPLV3     License = "gpl-3.0"
 )
-
-func (l License) Value() string {
-	return string(l)
-}
 
 type ContentType string
 
@@ -54,15 +46,18 @@ type Repository struct {
 	GitignoreTemplate GitignoreLang `json:"gitignore_template"`
 }
 
-func NewRepository(name, desc string) *Repository {
+func NewRepository(name, desc string, autoInit bool, license License, gitignore GitignoreLang) *Repository {
 	return &Repository{
-		Name: name,
-		Desc: desc,
+		Name:              name,
+		Desc:              desc,
+		AutoInit:          autoInit,
+		LicenseTemplate:   license,
+		GitignoreTemplate: gitignore,
 	}
 }
 
 func (r Repository) marshal() ([]byte, error) {
-	payload, err := json.Marshal(&r)
+	payload, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +71,12 @@ func (r Repository) Publish() error {
 		return err
 	}
 
-	http.Post(UserRepoEP, AppJSON.Value(), bytes.NewBuffer(data))
+	resp, err := http.Post(UserRepoEP, AppJSON.Value(), bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	body := resp.Body
+	defer resp.Body.Close()
+
 	return nil
 }
