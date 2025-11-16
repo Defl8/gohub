@@ -3,6 +3,7 @@ package repo
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 )
 
@@ -65,18 +66,29 @@ func (r Repository) marshal() ([]byte, error) {
 	return payload, nil
 }
 
-func (r Repository) Publish() error {
+func (r Repository) Publish() (*RepoResponse, error) {
 	data, err := r.marshal()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	// TODO: add token to this request
 	resp, err := http.Post(UserRepoEP, AppJSON.Value(), bytes.NewBuffer(data))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	body := resp.Body
 	defer resp.Body.Close()
 
-	return nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response RepoResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
